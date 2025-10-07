@@ -4,6 +4,10 @@
 
 # TO DO
 
+## Get Started with Tests
+
+Run the 5 tests required to complete the lab (which tests are these?) (all except alarm-priority)
+
 ## Create a list of sleeping threads
 and keep track of how many ticks they each will to wait for (somewhere in the Kernel level. It cannot be in the Thread Level because they're going to be sleeping!)
 
