@@ -13,7 +13,7 @@ Run the 5 tests required to complete the lab
 4. Alarm Negative
 5. Alarm Simultaneous
 
-To run test just call 'make check' on the threads directory, you can also call 'make VERBOSE=1 build/tests/threads/alarm-single.result'
+To run test just call `make check` on the threads directory, you can also call `make VERBOSE=1 build/tests/threads/alarm-single.result`
 to make it show extra information about the test
 
 ## Create a list of sleeping threads
