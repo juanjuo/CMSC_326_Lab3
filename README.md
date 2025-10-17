@@ -25,3 +25,5 @@ So that they can be waken up by the scheduler. Where is the threads-ready-to-run
 ## Make Sure!
 With the current implementation, all threads are still being swapped by the scheduler, this mechanic will stop happening after the correct implementation has been implemented. 
 
+To Block and Unblock the Threads:
+To put current thread to sleep use thread_block() and the thread will not be schedual until awoken, also use the thread_unlock() to put the thread in ready list which basically awoken the thread.
