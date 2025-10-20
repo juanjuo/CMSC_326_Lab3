@@ -93,8 +93,19 @@ void timer_sleep(int64_t ticks)
   int64_t start = timer_ticks();
 
   ASSERT(intr_get_level() == INTR_ON);
-  while (timer_elapsed(start) < ticks)
-    thread_yield();
+  // while (timer_elapsed(start) < ticks)
+  //   thread_yield();
+
+  enum intr_level old_level = intr_disable();
+
+  // Pointer to current thread
+  struct thread *curr = thread_current();
+  // to calculate the tick value for wake up
+  curr->wakeTick = timer_ticks() + ticks;
+  list_push_back(&sleepList, &curr->elem);
+  // block the thread
+  thread_block();
+  intr_set_level(old_level);
 }
 // To awoken the sleeping threads at target time
 // incomplete
@@ -109,7 +120,7 @@ void wakeUp(void)
     // to convert list elem to pointer to thread struct
     struct thread *t = list_entry(e, struct thread, elem);
     // checks if its time for thread to be awoken
-    if ( t->//targetSleepTime = ticks)
+    if (t->wakeTick = ticks)
     {
       // remove it from sleetList
       e = list_remove(e);
@@ -193,6 +204,7 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick();
+  wakeUp(); // to check sleeping threads
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
