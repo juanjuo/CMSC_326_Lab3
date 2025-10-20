@@ -1,6 +1,6 @@
 # CMSC_326_Lab3
-# Juan Diego Mora
-
+Juan Diego Mora
+Hameed Azad
 
 # TO DO
 
