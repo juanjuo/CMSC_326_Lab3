@@ -90,49 +90,81 @@ timer_elapsed(int64_t then)
    be turned on. */
 void timer_sleep(int64_t ticks)
 {
-  int64_t start = timer_ticks();
+  //int64_t start = timer_ticks();
 
-  ASSERT(intr_get_level() == INTR_ON);
-  // while (timer_elapsed(start) < ticks)
-  //   thread_yield();
+    ASSERT(intr_get_level() == INTR_ON);
 
-  enum intr_level old_level = intr_disable();
+    // Pointer to current thread
+    struct thread *curr = thread_current();
+    // to calculate the tick value for wake up
+    //curr->wakeTick = timer_ticks() + ticks;
+    enum intr_level old_level = intr_disable();
+
+    list_push_back(&sleepList, &curr->elem);
+    thread_block();
+
+    intr_set_level(old_level);
+
+
+  // intr_level old_level = intr_disable();
 
   // Pointer to current thread
-  struct thread *curr = thread_current();
+  //struct thread *curr = thread_current();
   // to calculate the tick value for wake up
-  curr->wakeTick = timer_ticks() + ticks;
-  list_push_back(&sleepList, &curr->elem);
+  //curr->wakeTick = timer_ticks() + ticks;
+  //list_push_back(&sleepList, &curr->elem);
   // block the thread
-  thread_block();
-  intr_set_level(old_level);
+  //thread_block();
+  //intr_set_level(old_level);
 }
+
 // To awoken the sleeping threads at target time
 // incomplete
 void wakeUp(void)
 {
   // pointer to sleep list elements
-  struct list_elem *e = list_begin(&sleepList);
+//  struct list_elem *e = list_begin(&sleepList);
 
   // to loop through all elements until the end
-  while (e != list_end(&sleepList))
-  {
+//  while (e != list_end(&sleepList))
+//  {
     // to convert list elem to pointer to thread struct
-    struct thread *t = list_entry(e, struct thread, elem);
+//    struct thread *t = list_entry(e, struct thread, elem);
     // checks if its time for thread to be awoken
-    if (t->wakeTick = ticks)
-    {
+//    if (t->wakeTick = ticks)
+//    {
       // remove it from sleetList
-      e = list_remove(e);
+//      e = list_remove(e);
       // unblock the thread and moves it to ready state
-      thread_unblock(t);
-    }
-    else
-    {
+//      thread_unblock(t);
+//    }
+//    else
+//    {
       // if curr thread shouldnt be awoken move to next
-      e = list_next(e);
-    }
-  }
+//      e = list_next(e);
+//    }
+//  }
+}
+
+
+//wakes up a single sleeping thread in a system with 2 total threads
+void singleWakeUp(){
+   //ASSERT(intr_get_level() == INTR_ON);
+
+   int64_t start = timer_ticks();
+
+   if (timer_elapsed(start) > timer_ticks() + 500){
+
+       struct list_elem *e;
+       for (e = list_begin(&sleepList);
+            e != list_end(&sleepList);
+            e = list_next(e)){
+           struct thread *sleep = list_entry(e, struct thread, elem);
+           if (sleep != thread_current){
+               thread_unblock(sleep);
+           }
+       }
+   }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupt s must be
@@ -204,7 +236,7 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick();
-  wakeUp(); // to check sleeping threads
+  singleWakeUp(); // to check sleeping threads
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

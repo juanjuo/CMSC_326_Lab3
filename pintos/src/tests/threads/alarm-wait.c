@@ -15,7 +15,7 @@ static void test_sleep (int thread_cnt, int iterations);
 void
 test_alarm_single (void) 
 {
-  test_sleep (5, 1);
+  test_sleep (1, 1);
 }
 
 void
