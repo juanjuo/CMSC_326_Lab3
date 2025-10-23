@@ -97,10 +97,15 @@ void timer_sleep(int64_t ticks)
     // Pointer to current thread
     struct thread *curr = thread_current();
     // to calculate the tick value for wake up
-    //curr->wakeTick = timer_ticks() + ticks;
-    enum intr_level old_level = intr_disable();
+    curr->wakeTick = timer_ticks() + ticks;
 
     list_push_back(&sleepList, &curr->elem);
+
+    //if (list_empty(&sleepList)) printf("list is empty\n");
+    //else printf("list has %d elements\n",list_size(&sleepList));
+
+    enum intr_level old_level = intr_disable();
+
     thread_block();
 
     intr_set_level(old_level);
@@ -151,17 +156,20 @@ void wakeUp(void)
 void singleWakeUp(){
    //ASSERT(intr_get_level() == INTR_ON);
 
-   int64_t start = timer_ticks();
 
-   if (timer_elapsed(start) > timer_ticks() + 500){
+   //int64_t start = timer_ticks();
 
+   //if (timer_elapsed(start) > timer_ticks() + 10){
+   if (list_size(&sleepList) > 0){
        struct list_elem *e;
-       for (e = list_begin(&sleepList);
+       for (e = list_begin(&sleepList);//iterate over all sleeping threads
             e != list_end(&sleepList);
             e = list_next(e)){
            struct thread *sleep = list_entry(e, struct thread, elem);
-           if (sleep != thread_current){
-               thread_unblock(sleep);
+           if (timer_ticks() >= sleep->wakeTick){//if ticks have passed
+               if (sleep != thread_current){//if this thread is not the current thread
+                   thread_unblock(sleep);//unblock
+               }
            }
        }
    }
@@ -236,7 +244,7 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick();
-  singleWakeUp(); // to check sleeping threads
+  singleWakeUp(); // to check sleeping thread
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
