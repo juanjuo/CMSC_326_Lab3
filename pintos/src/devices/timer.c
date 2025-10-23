@@ -164,14 +164,18 @@ void singleWakeUp(){
        struct list_elem *e;
        for (e = list_begin(&sleepList);//iterate over all sleeping threads
             e != list_end(&sleepList);
-            e = list_next(e)){
+            e = list_next(e) ){
            struct thread *sleep = list_entry(e, struct thread, elem);
+           printf("on Thread %s\n", sleep->name);
            if (timer_ticks() >= sleep->wakeTick){//if ticks have passed
                if (sleep != thread_current){//if this thread is not the current thread
                    thread_unblock(sleep);//unblock
                }
            }
        }
+   }
+   else {
+       //printf("list has no sleeping threads\n");
    }
 }
 
