@@ -21,7 +21,11 @@
 static int64_t ticks;
 
 // slept threads list
-static struct list sleepList;
+static struct list sleepList; //get rid of this!
+                              //not needed with semaphore implementation?
+
+
+static struct semaphore sema[1];
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -40,6 +44,7 @@ void timer_init(void)
   pit_configure_channel(0, 2, TIMER_FREQ);
   intr_register_ext(0x20, timer_interrupt, "8254 Timer");
   list_init(&sleepList);
+  sema_init (&sema, 0);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -86,6 +91,17 @@ timer_elapsed(int64_t then)
   return timer_ticks() - then;
 }
 
+bool
+less_value(struct list_elem *a, struct list_elem *b){
+  struct thread *temp_a;
+  struct thread *temp_b;
+
+  temp_a = list_entry(a, struct thread, elem);
+  temp_b = list_entry(b, struct thread, elem);
+
+  return temp_a->wakeTick < temp_b->wakeTick;
+}
+
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void timer_sleep(int64_t ticks)
@@ -97,18 +113,26 @@ void timer_sleep(int64_t ticks)
     // Pointer to current thread
     struct thread *curr = thread_current();
     // to calculate the tick value for wake up
-    curr->wakeTick = timer_ticks() + ticks;
+    curr->wakeTick = (int64_t) timer_ticks() + ticks;
 
-    list_push_back(&sleepList, &curr->elem);
+    //sema_down(&sema);
+
+    //get rid of everything else
+
+    //list_push_back(&sleepList, &curr->elem);
 
     //if (list_empty(&sleepList)) printf("list is empty\n");
     //else printf("list has %d elements\n",list_size(&sleepList));
 
-    enum intr_level old_level = intr_disable();
+    //enum intr_level old_level = intr_disable();
 
+    intr_disable();
+    //list_push_back(&sleepList, &curr->elem);
+    list_insert_ordered(&sleepList, &curr->elem, less_value, NULL);
     thread_block();
 
-    intr_set_level(old_level);
+    intr_enable();
+    //intr_set_level(old_level);
 
 
   // intr_level old_level = intr_disable();
@@ -151,7 +175,7 @@ void wakeUp(void)
 //  }
 }
 
-
+//maybe get rid of this function? not needed in semaphore implementation
 //wakes up a single sleeping thread in a system with 2 total threads
 void singleWakeUp(){
    //ASSERT(intr_get_level() == INTR_ON);
@@ -169,9 +193,13 @@ void singleWakeUp(){
            printf("on Thread %s\n", sleep->name);
            if (timer_ticks() >= sleep->wakeTick){//if ticks have passed
                if (sleep != thread_current){//if this thread is not the current thread
+                   printf("UNLOCK THREAD %s\n", sleep->name);
+                   list_pop_front(&sleepList);
                    thread_unblock(sleep);//unblock
+                   //sema_up(&sema);
                }
            }
+           else printf("not enought ticks have passed\n");
        }
    }
    else {
@@ -248,7 +276,22 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick();
-  singleWakeUp(); // to check sleeping thread
+  //sema_up(&sema);
+
+  struct thread *t;
+  while(!list_empty(&sleepList)) {
+
+      t = list_entry(list_front(&sleepList),struct thread, elem);
+
+      if (timer_ticks() < t->wakeTick)
+          break;
+
+      list_pop_front (&sleepList);
+      thread_unblock(t);
+  }
+
+  //get rid of this
+  //singleWakeUp(); // to check sleeping thread
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

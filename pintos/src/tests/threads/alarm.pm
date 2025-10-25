@@ -7,7 +7,7 @@ sub check_alarm {
 
     my (@products);
     for (my ($i) = 0; $i < $iterations; $i++) {
-	for (my ($t) = 0; $t < 1; $t++) {
+	for (my ($t) = 0; $t < 5; $t++) {
 	    push (@products, ($i + 1) * ($t + 1) * 10);
 	}
     }
