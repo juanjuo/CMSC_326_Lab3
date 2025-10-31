@@ -21,11 +21,7 @@
 static int64_t ticks;
 
 // slept threads list
-static struct list sleepList; //get rid of this!
-                              //not needed with semaphore implementation?
-
-
-static struct semaphore sema[1];
+static struct list sleepList;
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -44,7 +40,6 @@ void timer_init(void)
   pit_configure_channel(0, 2, TIMER_FREQ);
   intr_register_ext(0x20, timer_interrupt, "8254 Timer");
   list_init(&sleepList);
-  sema_init (&sema, 0);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -91,8 +86,9 @@ timer_elapsed(int64_t then)
   return timer_ticks() - then;
 }
 
-bool
-less_value(struct list_elem *a, struct list_elem *b){
+
+//use to organize threads by wake up time in the sleepList
+bool less_value(struct list_elem *a, struct list_elem *b){
   struct thread *temp_a;
   struct thread *temp_b;
 
@@ -106,8 +102,6 @@ less_value(struct list_elem *a, struct list_elem *b){
    be turned on. */
 void timer_sleep(int64_t ticks)
 {
-  //int64_t start = timer_ticks();
-
     ASSERT(intr_get_level() == INTR_ON);
 
     // Pointer to current thread
@@ -115,96 +109,10 @@ void timer_sleep(int64_t ticks)
     // to calculate the tick value for wake up
     curr->wakeTick = (int64_t) timer_ticks() + ticks;
 
-    //sema_down(&sema);
-
-    //get rid of everything else
-
-    //list_push_back(&sleepList, &curr->elem);
-
-    //if (list_empty(&sleepList)) printf("list is empty\n");
-    //else printf("list has %d elements\n",list_size(&sleepList));
-
-    //enum intr_level old_level = intr_disable();
-
     intr_disable();
-    //list_push_back(&sleepList, &curr->elem);
     list_insert_ordered(&sleepList, &curr->elem, less_value, NULL);
     thread_block();
-
     intr_enable();
-    //intr_set_level(old_level);
-
-
-  // intr_level old_level = intr_disable();
-
-  // Pointer to current thread
-  //struct thread *curr = thread_current();
-  // to calculate the tick value for wake up
-  //curr->wakeTick = timer_ticks() + ticks;
-  //list_push_back(&sleepList, &curr->elem);
-  // block the thread
-  //thread_block();
-  //intr_set_level(old_level);
-}
-
-// To awoken the sleeping threads at target time
-// incomplete
-void wakeUp(void)
-{
-  // pointer to sleep list elements
-//  struct list_elem *e = list_begin(&sleepList);
-
-  // to loop through all elements until the end
-//  while (e != list_end(&sleepList))
-//  {
-    // to convert list elem to pointer to thread struct
-//    struct thread *t = list_entry(e, struct thread, elem);
-    // checks if its time for thread to be awoken
-//    if (t->wakeTick = ticks)
-//    {
-      // remove it from sleetList
-//      e = list_remove(e);
-      // unblock the thread and moves it to ready state
-//      thread_unblock(t);
-//    }
-//    else
-//    {
-      // if curr thread shouldnt be awoken move to next
-//      e = list_next(e);
-//    }
-//  }
-}
-
-//maybe get rid of this function? not needed in semaphore implementation
-//wakes up a single sleeping thread in a system with 2 total threads
-void singleWakeUp(){
-   //ASSERT(intr_get_level() == INTR_ON);
-
-
-   //int64_t start = timer_ticks();
-
-   //if (timer_elapsed(start) > timer_ticks() + 10){
-   if (list_size(&sleepList) > 0){
-       struct list_elem *e;
-       for (e = list_begin(&sleepList);//iterate over all sleeping threads
-            e != list_end(&sleepList);
-            e = list_next(e) ){
-           struct thread *sleep = list_entry(e, struct thread, elem);
-           printf("on Thread %s\n", sleep->name);
-           if (timer_ticks() >= sleep->wakeTick){//if ticks have passed
-               if (sleep != thread_current){//if this thread is not the current thread
-                   printf("UNLOCK THREAD %s\n", sleep->name);
-                   list_pop_front(&sleepList);
-                   thread_unblock(sleep);//unblock
-                   //sema_up(&sema);
-               }
-           }
-           else printf("not enought ticks have passed\n");
-       }
-   }
-   else {
-       //printf("list has no sleeping threads\n");
-   }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupt s must be
@@ -276,7 +184,6 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick();
-  //sema_up(&sema);
 
   struct thread *t;
   while(!list_empty(&sleepList)) {
@@ -286,12 +193,9 @@ timer_interrupt(struct intr_frame *args UNUSED)
       if (timer_ticks() < t->wakeTick)
           break;
 
-      list_pop_front (&sleepList);
-      thread_unblock(t);
+      list_pop_front (&sleepList); //remove from sleep list
+      thread_unblock(t); //wake up
   }
-
-  //get rid of this
-  //singleWakeUp(); // to check sleeping thread
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

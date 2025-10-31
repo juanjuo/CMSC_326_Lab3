@@ -92,7 +92,7 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-      // tick to wake up
+      // tick to wake up thread
     int64_t wakeTick;
 
 
